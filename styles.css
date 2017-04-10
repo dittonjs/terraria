@@ -1,0 +1,40 @@
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #263238;
+
+  color: white;
+  min-width: 912px;
+}
+
+html, body {
+  width:  100%;
+  height: 100%;
+  margin: 0px;
+}
+
+h1 {
+  text-align: center;
+}
+
+h2 {
+  text-align: center;
+  font-size: 2em;
+  color: #5E5E5E;
+}
+
+h4 {
+  text-align: center;
+  margin: 5px 0px;
+}
+
+#main-canvas {
+  background-color: #37474F;
+}
+
+.name-form {
+  position: fixed;
+  top: 100px;
+  left: 300px;
+  background-color: grey;
+  padding: 10px;
+}
