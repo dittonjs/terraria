@@ -22,7 +22,9 @@ export default class SavedGames extends React.Component {
         this.componentWillMount();
       });
   }
-  continueGame(worldName){}
+  continueGame(worldName){
+    window.location.href = `http://localhost:9000/?gameName=${worldName}&hostName=localhost&join=false&playerId=${this.props.user.userName}`;
+  }
   render(){
     const styles = {
       container: {

@@ -19,6 +19,7 @@ export default class ConfigureControls extends React.Component {
           userEmail: this.props.user.email,
         }
       ).end((err, res) => {
+        this.props.parent.state.user.keyMap = this.state.keyMap; // wrong, but easy
         this.props.parent.setState({controls: false});
       });
   }
