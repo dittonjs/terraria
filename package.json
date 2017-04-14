@@ -13,7 +13,8 @@
     "mongodb": "^2.2.25",
     "node-uuid": "^1.4.8",
     "seedrandom": "^2.4.2",
-    "socket.io": "^1.7.3"
+    "socket.io": "^1.7.3",
+    "uid": "0.0.2"
   },
   "author": "",
   "license": "ISC"

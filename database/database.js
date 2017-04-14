@@ -16,20 +16,30 @@ class Database {
     });
   }
 
-  createWorld(name, blocks, playerIds, callback = ()=>{}){
+  updateKeyMap(email, keyMap, callback){
+    MongoClient.connect(url, (err, db) => {
+      db.collection('users').update({email}, {keyMap});
+    });
+  }
+
+  createWorld(name, email, blocks, players, callback = ()=>{}){
     MongoClient.connect(url, (err, db) => {
       db.collection('worlds').insertOne({
-        name, blocks, playerIds
+        name, email, blocks, players
       }, callback);
     });
   }
 
-  getWorldNames(callback){
+  getWorldNames(email, callback){
     MongoClient.connect(url, (err, db) => {
-      db.collection('worlds').find({}, {name: 1}).toArray(callback);
+      db.collection('worlds').find({email}, {name: 1}).toArray(callback);
     });
   }
-
+  deleteWorld(name, callback){
+    MongoClient.connect(url, (err, db) => {
+      db.collection('worlds').remove({name}, callback);
+    });
+  }
   loadWorld(name, callback = () => {}){
     MongoClient.connect(url, (err, db) => {
       db.collection('worlds').find({

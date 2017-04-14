@@ -1,7 +1,7 @@
 const socketIO        = require('socket.io');
 const express         = require('express');
 const http            = require('http');
-const UUID            = require('node-uuid');
+const uid             = require('uid');
 const _               = require('lodash');
 const bodyParser      = require('body-parser');
 const database        = new (require('./database/database'));
@@ -12,28 +12,20 @@ const server          = http.Server(app);
 const io              = socketIO(server);
 const NoiseGenerator  = require('./noise');
 
-/* Express server set up. */
-
-//The express server handles passing our content to the browser,
-//As well as routing users where they need to go. This example is bare bones
-//and will serve any file the user requests from the root of your web server (where you launch the script from)
-//so keep this in mind - this is not a production script but a development teaching tool.
-
-    //Tell the server to listen for incoming connections
 server.listen( port );
 
-    //Log something so we know that it succeeded.
-console.log('\t :: Express :: Listening on port ' + port );
+console.log(':: Express :: Listening on port ' + port );
+
 app.use(bodyParser.json());
+
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-    //By default, we forward the / path to index.html automatically.
 app.get( '/', function( req, res ){
-    res.sendfile( __dirname + '/index.html' );
+    res.sendfile( __dirname + '/game.html' );
 });
 
 app.get('/users', (req, res) => {
@@ -41,9 +33,52 @@ app.get('/users', (req, res) => {
     res.send(JSON.stringify(doc));
   });
 });
-// app.get('/*', (req, res) => {
-//   res.sendFile(`${__dirname}/${req.params[0]}`);
-// });
+
+app.get('/world_names', (req, res) => {
+  database.getWorldNames(req.query.creator_email, (err, doc)=>{
+    res.send(JSON.stringify(doc));
+  });
+});
+
+app.post('/create_world', (req, res) => {
+  const blocks = buildBlocks(req.query.world_name);
+  const player = buildPlayer(req.query.user_name);
+  database.createWorld(req.query.world_name, req.query.email, blocks, [player], (err)=>{
+    res.send(JSON.stringify({err}));
+  });
+});
+
+app.get('/delete_world', (req, res) => {
+  database.deleteWorld(req.query.world_name, (err)=>{
+    res.send(JSON.stringify({err}));
+  });
+});
+
+
+// the game uses these
+app.get('/game_engine/*', (req, res) => {
+  res.sendFile(`${__dirname}/game_engine/${req.params[0]}`);
+});
+
+app.get('/game_objects/*', (req, res) => {
+  res.sendFile(`${__dirname}/game_objects/${req.params[0]}`);
+});
+
+app.get('/scenes/*', (req, res) => {
+  res.sendFile(`${__dirname}/scenes/${req.params[0]}`);
+});
+
+app.get('/game/*', (req, res) => {
+  res.sendFile(`${__dirname}/game/${req.params[0]}`);
+});
+
+app.get('/styles/*', (req, res) => {
+  res.sendFile(`${__dirname}/styles/${req.params[0]}`);
+});
+
+app.get('/spritesheets/*', (req, res) => {
+  res.sendFile(`${__dirname}/spritesheets/${req.params[0]}`);
+});
 
 
 const defaultKeyMap = {
@@ -67,116 +102,108 @@ app.post('/users', (req, res) => {
   });
 });
 
+app.post('/update_keymap', (req, res) => {
+  console.log(req.body);
+  const userEmail = req.body.userEmail;
+  const keyMap = req.body.keyMap;
+  database.updateKeyMap(userEmail, keyMap);
+  res.send(JSON.stringify({status: 'ok'}));
+});
+
 
 class Game {
   constructor(name){
     this.gameObjects = {};
-    this.blocks = [];
-    this.players = [];
     this.name = name;
   }
 }
 const currentGames = {};
-const players = [];
-const readyPlayers = [];
-let incrementalId = 0;
-const gameObjects = {};
+
+app.get('/current_games', (req, res) =>{
+  const keys = _.map(currentGames, game => game.name);
+  res.send(JSON.stringify(keys));
+});
+
 io.on("connection", (socket)=>{
-  players.push(socket.id);
-  let payload = {
-    playerId: socket.id
-  }
 
-  socket.emit('player id assigned', payload);
-  io.emit('player connected', { players });
-  console.log('a user connected');
   socket.on('disconnect', function(){
-    _.remove(players, (player) => player == socket.id);
-    io.emit('player disconnected', { players });
+    io.emit('player disconnected');
     console.log('user disconnected');
-  });
-
-  socket.on('ready', () => {
-    readyPlayers.push(socket.id);
-    io.emit('player ready', {readyPlayers});
-  });
-
-  socket.on('game started', () => {
-    database.getWorldNames((err, docs) => {
-      socket.emit('world names loaded', docs);
-    });
   });
 
   socket.on('instantiate', (gameObject)=>{
     console.log(`${gameObject.name} OBJECT INSTANTIATED`)
     if(gameObject.name == 'laser'){
-      gameObject.creatorId = socket.id;
+      // gameObject.creatorId = socket.id;
       io.emit(`${gameObject.name} instantiated`, gameObject);
       return;
     }
-    gameObject.serverId = incrementalId;
-    gameObject.creatorId = socket.id;
-    currentGames['hello world'].gameObjects[incrementalId] = gameObject;
-    incrementalId+=1;
+    gameObject.serverId = uid(10);
+    // gameObject.creatorId = socket.id;
+    currentGames[gameObject.gameName].gameObjects[uid(10)] = gameObject;
+    uid(10)+=1;
     io.emit(`${gameObject.name} instantiated`, gameObject);
   });
 
   socket.on('destroy', (data) => {
-    const obj = currentGames['hello world'].gameObjects[data.id];
+    const obj = currentGames[data.gameName].gameObjects[data.id];
     if(!obj) return;
     console.log(obj.name + ' OBJECT DESTROY');
     _.merge(obj, data.attributes)
-    delete currentGames['hello world'].gameObjects[data.id];
+    delete currentGames[data.gameName].gameObjects[data.id];
     io.emit(`${obj.name} destroyed`, obj);
   });
 
   socket.on('update', (data) => {
-    if(!currentGames['hello world']) return;
-    _.merge(currentGames['hello world'].gameObjects[data.id], data.attributes);
+    if(!currentGames[data.gameName]) return;
+    _.merge(currentGames[data.gameName].gameObjects[data.id], data.attributes);
     io.emit(
-      `${currentGames['hello world'].gameObjects[data.id].name} updated`,
-      currentGames['hello world'].gameObjects[data.id]
+      `${currentGames[data.gameName].gameObjects[data.id].name} updated`,
+      currentGames[data.gameName].gameObjects[data.id]
     );
   });
 
-  socket.on('new game', (data)=>{
-    currentGames[data.name] = new Game(data.name);
-    const blocks = buildBlocks(data.name, currentGames[data.name]);
-    socket.emit('blocks created', blocks);
-    socket.emit('enemies spawned', []);
-    const player = buildPlayer(currentGames[data.name], socket.id);
-    socket.emit('leader changed', {newLeaderId: socket.id});
-    socket.emit('players ready', currentGames[data.name].players);
-    socket.emit('server ready', currentGames[data.name].name);
-    io.emit('game ready', data.name);
+
+
+  socket.on('continue game', (data) => {
+    console.log(data.name);
+    database.loadWorld(data.name, (err, doc)=>{
+      currentGames[data.name] = new Game(data.name);
+      _.each(doc.blocks, (block)=>{ currentGames[data.name].gameObjects[block.serverId] = block; });
+      _.each(doc.players, (player)=>{ currentGames[data.name].gameObjects[player.serverId] = player; });
+      socket.emit('game loaded', {blocks: doc.blocks, players: doc.players});
+    });
   });
 
-  socket.on('join game', (data)=>{
+  socket.on('join game', (data) => {
     const game = currentGames[data.name];
-    const player = buildPlayer(game, socket.id);
-    socket.emit('game joined', {gameObjects: game.gameObjects, player});
-    socket.broadcast.emit('player joined', player);
+    const player = _.find(game.gameObjects, obj => obj.name == 'player' && obj.creatorId == data.playerId);
+    if(!player){
+      const newPlayer = buildPlayer(data.playerId);
+      game.gameObjects[newPlayer.serverId] = newPlayer;
+      io.emit('player joined', newPlayer);
+    }
+    // TODO what if the player joined game but isnt there next time
+    socket.emit('game joined', {gameObjects: game.gameObjects});
   });
 });
 
-function buildPlayer(game, playerId){
+function buildPlayer(playerId){
   const player = {
     name: 'player',
-    serverId: incrementalId++,
+    serverId: uid(10),
     creatorId: playerId,
     transform: {
       x:800,
       y:0,
     },
     health: 100,
-    damage: 100
+    damage: 100,
   }
-  game.gameObjects[player.serverId] = player;
-  game.players.push(player);
   return player;
 }
 
-function buildBlocks(seed, game){
+function buildBlocks(seed){
   const noise = new NoiseGenerator(seed, 200, 1000);
   const blocks = [];
   for(let i=0; i < 100; i++){
@@ -191,10 +218,10 @@ function buildBlocks(seed, game){
       health: 100,
       type: 'grass',
       damage: 0,
-      serverId: incrementalId++,
+      serverId: uid(10),
       creatorId: 'server'
     }
-    game.gameObjects[newBlock.serverId] = newBlock;
+    // game.gameObjects[newBlock.serverId] = newBlock;
     blocks.push(newBlock);
     for(let j = normalY + 32; j < 1024; j+=32){
       let childBlock = {
@@ -206,10 +233,10 @@ function buildBlocks(seed, game){
         health: 100,
         type: 'dirt',
         damage: 0,
-        serverId: incrementalId++,
+        serverId: uid(10),
         creatorId: 'server'
       }
-      game.gameObjects[childBlock.serverId] = childBlock;
+      // game.gameObjects[childBlock.serverId] = childBlock;
       blocks.push(childBlock);
     }
   }

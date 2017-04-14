@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "keycode": "^2.1.8",
     "lodash": "^4.17.4",
     "react": "^15.5.3",
     "react-dom": "^15.5.3",

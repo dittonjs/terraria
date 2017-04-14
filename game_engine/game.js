@@ -1,5 +1,5 @@
 class Game {
-  constructor(canvas, assets){
+  constructor(canvas, assets, networkData){
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -19,7 +19,7 @@ class Game {
     this.serverUpdates = [];
     this.currentScene = 0;
     this.nextScene = null;
-    this.network = new GameNetwork();
+    this.network = new GameNetwork(networkData);
     this.assets = {};
     this.assetsLoaded = 0;
     this.assetsReady = false;

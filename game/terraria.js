@@ -12,7 +12,7 @@ class MainWorld extends GameScene {
   }
 
   handleDestory(serverObj){
-    // if(serverObj.creatorId != this.game.network.playerId){
+    // if(serverObj.creatorId != this.game.network.networkData.playerId){
       console.log(serverObj.name + ' DESTROYED');
       this.game.addServerUpdate((elapsedTime) => {
         let otherObj = _.find(this.gameObjects, obj => obj.serverId == serverObj.serverId);
@@ -26,7 +26,7 @@ class MainWorld extends GameScene {
   }
 
   handleUpdate(serverObj){
-    if(serverObj.creatorId != this.game.network.playerId){
+    if(serverObj.creatorId != this.game.network.networkData.playerId){
       this.game.addServerUpdate((elapsedTime) => {
         const otherObject = _.find(this.gameObjects, obj => obj.serverId == serverObj.serverId);
         _.merge(otherObject, serverObj);
@@ -37,7 +37,7 @@ class MainWorld extends GameScene {
     this.camera = this.instantiate(DebugCamera, false);
     this.game.network.on('player updated', (player) => {this.handleUpdate(player)});
     this.game.network.on('player joined', (player) => {
-      if(player.creatorId != this.game.network.playerId){
+      if(player.creatorId != this.game.network.networkData.playerId){
         this.game.addServerUpdate((elapsedTime) => {
           const p = this.instantiate(Player, false);
           _.merge(p, player);
@@ -52,7 +52,7 @@ class MainWorld extends GameScene {
     });
 
     this.game.network.on('laser instantiated', (obj) => {
-      if(obj.creatorId != this.game.network.playerId){
+      if(obj.creatorId != this.game.network.networkData.playerId){
         const laser = this.instantiate(Laser, false, [{}]);
         _.merge(laser, obj);
       } else {
@@ -66,7 +66,7 @@ class MainWorld extends GameScene {
     });
 
     this.game.network.on('block instantiated', (block)=>{
-      if(block.creatorId != this.game.network.playerId){
+      if(block.creatorId != this.game.network.networkData.playerId){
         const bl = this.instantiate(BLOCKS[block.type], true, [{}]);
         _.merge(bl, block);
       } else {
@@ -167,6 +167,14 @@ class MainWorld extends GameScene {
 }
 
 function startGame(){
+  let data = window.location.search.replace('?', '').split("&");
+  let networkData = _.reduce(data,(result, keyVal)=>{
+    let parts = _.map(keyVal.split("="), part => decodeURIComponent(part));
+    result[parts[0]] = parts[1];
+    return result;
+  }, {});
+
+  console.log(data);
   const canvas = document.getElementById('main-canvas');
   canvas.width = 700;
   canvas.height = 500;
@@ -174,16 +182,16 @@ function startGame(){
     {type: 'image', src: '/spritesheets/sprites.png', name: 'sprites'},
     {type: 'image', src: '/spritesheets/character.png', name: 'player'}
   ];
-  const game = new Game(canvas, assets);
+  const game = new Game(canvas, assets, networkData);
   const mainWorld = new MainWorld('mainWorld', game);
-  const splashScreen = new SplashScreen('splashScreen', game);
-  const mainMenu = new MainMenu('mainMenu', game);
+  //
   const loadingScene = new LoadingScene('loadingScene', game);
+  loadingScene.awake();
   // mainMenu.awake();
   // mainWorld.awake();
-  splashScreen.awake();
-  game.addScene(splashScreen);
-  game.addScene(mainMenu);
+  // splashScreen.awake();
+  // game.addScene(splashScreen);
+  // game.addScene(mainMenu);
   game.addScene(loadingScene);
   game.addScene(mainWorld);
   game.start();

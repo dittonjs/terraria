@@ -117,7 +117,7 @@ class Player extends multiple([Collider, AnimationMachine]) {
             this.shooting = true;
             const at = raycastHit? raycastHit : {x: input.transform.x, y: input.transform.y}
             const laser = this.scene.instantiate(Laser, false, [at], this);
-            laser.creatorId = this.game.network.playerId;
+            laser.creatorId = this.game.network.networkData.playerId;
             this.game.network.instantiate({name: 'laser', to: {x: at.x, y: at.y}, from: this.transform});
             if(raycastHit && raycastHit.obj.name == "block"){
 
