@@ -8,17 +8,20 @@ class Database {
     });
   }
 
-  getUser(email, callback = ()=>{}){
+  getUser(data, callback = ()=>{}, key = 'email'){
     MongoClient.connect(url, (err, db) => {
+      console.log(err);
       db.collection('users').find({
-        email
+        [key]: data
       }).next(callback);
     });
   }
 
   updateKeyMap(email, keyMap, callback){
     MongoClient.connect(url, (err, db) => {
-      db.collection('users').update({email}, {keyMap});
+      db.collection('users').update({email}, { $set: {
+        keyMap
+      }});
     });
   }
 
@@ -27,6 +30,17 @@ class Database {
       db.collection('worlds').insertOne({
         name, email, blocks, players
       }, callback);
+    });
+  }
+
+  saveWorld(name, blocks, players, callback = ()=>{}){
+    MongoClient.connect(url, (err, db) => {
+      db.collection('worlds').update({name}, {
+        $set: {
+          blocks,
+          players
+        }
+      });
     });
   }
 

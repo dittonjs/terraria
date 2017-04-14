@@ -16,6 +16,7 @@ class LoadingScene extends GameScene {
         return GrassBlock;
         break;
       case 'dirt':
+      case 'Dirt':
         return DirtBlock;
       default:
 
@@ -23,20 +24,24 @@ class LoadingScene extends GameScene {
   }
   awake(){
     this.game.network.on('game loaded', (data) => {
-      const mainGame = this.game.scenes[1];
-      _.each(data.blocks, (block)=>{
-        const newBlock = mainGame.instantiate(this.blockFromType(block.type), true, [{x:0,y:0}]);
-        _.merge(newBlock, block);
-      });
+      async function createObjects(){
+        const mainGame = this.game.scenes[1];
+        _.each(data.blocks, (block)=>{
+          const newBlock = mainGame.instantiate(this.blockFromType(block.type), true, [{x:0,y:0}]);
+          _.merge(newBlock, block);
+        });
 
-      _.each(data.players, (player, index)=>{
-        const newPlayer = mainGame.instantiate(Player, false);
-        _.merge(newPlayer, player);
-        if(newPlayer.creatorId == this.game.network.networkData.playerId){
-          mainGame.player = newPlayer;
-        }
-      });
-      this.transition();
+        _.each(data.players, (player, index)=>{
+          const newPlayer = mainGame.instantiate(Player, false);
+          _.merge(newPlayer, player);
+          if(newPlayer.creatorId == this.game.network.networkData.playerId){
+            console.log(newPlayer);
+            mainGame.player = newPlayer;
+            mainGame.player.transform.y -= 10;
+          }
+        });
+      }
+      createObjects.call(this).then(() => this.transition());
     });
 
     this.game.network.on('game joined', (data) => {

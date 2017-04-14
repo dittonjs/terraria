@@ -8,7 +8,7 @@ class GroundChecker extends multiple([Collider]) {
         height: 5
       }
     );
-    this.isOnGround = false;
+    this.isOnGround = true;
   }
 
   _update(){

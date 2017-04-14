@@ -166,15 +166,7 @@ class MainWorld extends GameScene {
   }
 }
 
-function startGame(){
-  let data = window.location.search.replace('?', '').split("&");
-  let networkData = _.reduce(data,(result, keyVal)=>{
-    let parts = _.map(keyVal.split("="), part => decodeURIComponent(part));
-    result[parts[0]] = parts[1];
-    return result;
-  }, {});
-
-  console.log(data);
+function startGame(networkData, keyMap){
   const canvas = document.getElementById('main-canvas');
   canvas.width = 700;
   canvas.height = 500;
@@ -182,7 +174,7 @@ function startGame(){
     {type: 'image', src: '/spritesheets/sprites.png', name: 'sprites'},
     {type: 'image', src: '/spritesheets/character.png', name: 'player'}
   ];
-  const game = new Game(canvas, assets, networkData);
+  const game = new Game(canvas, assets, networkData, keyMap);
   const mainWorld = new MainWorld('mainWorld', game);
   //
   const loadingScene = new LoadingScene('loadingScene', game);
@@ -199,5 +191,16 @@ function startGame(){
 };
 
 (function(){
-  let game = startGame();
+  let data = window.location.search.replace('?', '').split("&");
+  let networkData = _.reduce(data,(result, keyVal)=>{
+    let parts = _.map(keyVal.split("="), part => decodeURIComponent(part));
+    result[parts[0]] = parts[1];
+    return result;
+  }, {});
+  var request = superagent;
+  request.get('http://localhost:9000/users?player_id='+networkData.playerId).end((err, res)=>{
+    console.log(res, err);
+    const keyMap = JSON.parse(res.text).keyMap;
+    let game = startGame(networkData, keyMap);
+  });
 })();

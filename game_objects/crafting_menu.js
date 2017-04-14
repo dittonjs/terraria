@@ -42,7 +42,8 @@ class CraftingMenu extends GameScene {
       'Wood Wall',
       'Wood Door',
       'Glass window',
-      'Fireplace'
+      'Fireplace',
+      'SAVE GAME'
     ]
     this.player = player
     this.open = false;
@@ -53,6 +54,11 @@ class CraftingMenu extends GameScene {
     this.open = open;
   }
   selectItem(item){
+    if(item.text == 'SAVE GAME'){
+      this.game.network.emit('save game', this.game.network.networkData.gameName);
+      this.open = false;
+      return;
+    }
     _.each(this.gameObjects, obj=>{obj.isSelected = false});
     item.isSelected = true;
     this.currentSelection = item.text;

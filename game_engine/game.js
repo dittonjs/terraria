@@ -1,5 +1,5 @@
 class Game {
-  constructor(canvas, assets, networkData){
+  constructor(canvas, assets, networkData, keyMap = null){
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -9,7 +9,7 @@ class Game {
     this.readyInput = [];
     this.elapsedTime = 0;
     this.math = new JMath();
-    this.input = new GameInput();
+    this.input = new GameInput(keyMap);
     this.shouldContinue = true;
     this.gameLoop = this.gameLoop.bind(this);
     this.menuInput = this.menuInput.bind(this);
@@ -144,10 +144,8 @@ class Game {
       case 27:
         this.pendingInput.push({key: 'escape'});
         break;
-      case 9:
-        this.pendingInput.push({key: 'tab'});
-        break;
       default:
+        this.pendingInput.push({key: e.keyCode})
         break;
     }
   }

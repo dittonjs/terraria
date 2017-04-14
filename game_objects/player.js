@@ -35,6 +35,8 @@ class Player extends multiple([Collider, AnimationMachine]) {
     this.craftingMenu.awake();
     window.inventory = this.inventory;
     this.setupAnimation();
+    this.firstUpdate = true;
+    this.terminalVelocity = 15;
   }
 
   setupAnimation(){
@@ -97,15 +99,18 @@ class Player extends multiple([Collider, AnimationMachine]) {
   }
 
   update(deltaTime){
+    if(this.firstUpdate){
+      this.firstUpdate = false;
+      return;
+    }
     const conditions = this.updateAnimations(deltaTime);
     _.each(this.game.readyInput, input => {
-      if(input.key == 'tab'){
+      if(input.key == this.game.input.keyMap.toggleMenu){
         this.craftingMenu.toggleMenu(!this.craftingMenu.open);
       }
     });
     this.craftingMenu.update();
     if(this === this.scene.player){
-      console.log('i am my own player');
       if(!this.shooting && !this.craftingMenu.open && this.craftingMenu.currentSelection == 'Mining Laser'){
         _.each(this.game.readyInput, input => {
           if(input.key == 'click'){
@@ -144,6 +149,7 @@ class Player extends multiple([Collider, AnimationMachine]) {
       if(!this.groundChecker.isOnGround || this.inAir){
         this.inAir = true;
         this.gravity += (9.8 * 70 * (deltaTime/1000)*(deltaTime/1000));
+        this.gravity > this.terminalVelocity && (this.gravity = this.terminalVelocity);
       }
       if(!this.inAir && this.game.input.getAxis('fire') != 0){
         this.yVelocity = -300;
@@ -175,7 +181,7 @@ class Player extends multiple([Collider, AnimationMachine]) {
     this.game.graphics.drawImg(
       this.transform,
       this.sprite,
-      {flipImage: this.facingDir == 'left' || this.conditions.dir == 'left'}
+      {flipImage: this.facingDir == 'left' || (!this.facingDir && this.conditions.dir == 'left')}
     );
   }
 }

@@ -1,5 +1,6 @@
 class GameInput {
-  constructor(){
+  constructor(keyMap){
+    this.keyMap = keyMap;
     this.axis = {
       x: 0,
       y: 0,
@@ -56,9 +57,7 @@ class GameInput {
         this.setAxis('y', val);
         break;
       }
-      case 37:
-      case 65:
-      case 74:{
+      case this.keyMap.left:{
         let val;
         if(e.type == "keydown"){
           val = -1;
@@ -73,9 +72,7 @@ class GameInput {
         this.setAxis('x', val);
         break;
       }
-      case 39:
-      case 68:
-      case 76: {
+      case this.keyMap.right: {
         let val;
         if(e.type == "keydown"){
           val = 1;
@@ -91,11 +88,12 @@ class GameInput {
         break;
 
       }
-      case 32: {
+      case this.keyMap.jump: {
+        console.log(this.keyMap.jump);
         this.setAxis('fire', e.type == 'keydown' ? 1 : 0);
         break;
       }
-      case 16: {
+      case this.keyMap.sprint: {
         this.setAxis('sprint', e.type == 'keydown' ? 1 : 0);
         break
       }

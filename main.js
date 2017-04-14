@@ -29,9 +29,12 @@ app.get( '/', function( req, res ){
 });
 
 app.get('/users', (req, res) => {
-  database.getUser(req.query.email, (err, doc)=>{
+  req.query.email && database.getUser(req.query.email, (err, doc)=>{
     res.send(JSON.stringify(doc));
   });
+  req.query.player_id && database.getUser(req.query.player_id, (err, doc)=>{
+    res.send(JSON.stringify(doc));
+  }, 'userName');
 });
 
 app.get('/world_names', (req, res) => {
@@ -78,6 +81,10 @@ app.get('/styles/*', (req, res) => {
 
 app.get('/spritesheets/*', (req, res) => {
   res.sendFile(`${__dirname}/spritesheets/${req.params[0]}`);
+});
+
+app.get('/node_modules/superagent/*', (req, res) => {
+  res.sendFile(`${__dirname}/node_modules/superagent/${req.params[0]}`);
 });
 
 
@@ -135,14 +142,13 @@ io.on("connection", (socket)=>{
     console.log(`${gameObject.name} OBJECT INSTANTIATED`)
     if(gameObject.name == 'laser'){
       // gameObject.creatorId = socket.id;
-      io.emit(`${gameObject.name} instantiated`, gameObject);
+      socket.broadcast.emit(`${gameObject.name} instantiated`, gameObject);
       return;
     }
     gameObject.serverId = uid(10);
     // gameObject.creatorId = socket.id;
     currentGames[gameObject.gameName].gameObjects[uid(10)] = gameObject;
-    uid(10)+=1;
-    io.emit(`${gameObject.name} instantiated`, gameObject);
+    socket.broadcast.emit(`${gameObject.name} instantiated`, gameObject);
   });
 
   socket.on('destroy', (data) => {
@@ -151,13 +157,13 @@ io.on("connection", (socket)=>{
     console.log(obj.name + ' OBJECT DESTROY');
     _.merge(obj, data.attributes)
     delete currentGames[data.gameName].gameObjects[data.id];
-    io.emit(`${obj.name} destroyed`, obj);
+    socket.broadcast.emit(`${obj.name} destroyed`, obj);
   });
 
   socket.on('update', (data) => {
     if(!currentGames[data.gameName]) return;
     _.merge(currentGames[data.gameName].gameObjects[data.id], data.attributes);
-    io.emit(
+    socket.broadcast.emit(
       `${currentGames[data.gameName].gameObjects[data.id].name} updated`,
       currentGames[data.gameName].gameObjects[data.id]
     );
@@ -185,6 +191,13 @@ io.on("connection", (socket)=>{
     }
     // TODO what if the player joined game but isnt there next time
     socket.emit('game joined', {gameObjects: game.gameObjects});
+  });
+
+  socket.on('save game', (gameName) => {
+    const game = currentGames[gameName];
+    const blocks = _.filter(game.gameObjects, obj => obj.name == 'block');
+    const players = _.filter(game.gameObjects, obj => obj.name == 'player');
+    database.saveWorld(gameName, blocks, players);
   });
 });
 
