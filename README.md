@@ -10,7 +10,7 @@
 * run `npm start`, this will start the client game portal on open a web browser window to localhost:3000
 
 
-Criteria met
+```Criteria met
 Game play: -------------- 35
 Menuing: ---------------- 10
 Reconfig Controls ------- 15
@@ -25,4 +25,4 @@ Multiplayer ------------- 75
 Procedural Generation --- 25
 Save Game --------------- 20
 
-Total ------------------ 275
+Total ------------------ 275```
