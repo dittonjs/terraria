@@ -57,10 +57,11 @@ class App extends Component {
   }
   componentWillUpdate(){
     if(!this.state.user && window.localStorage.getItem('terrariaEmail')){
+      console.log(window.localStorage.getItem('terrariaEmail'));
       request
         .get(`http://localhost:9000/users?email=${window.localStorage.getItem('terrariaEmail')}`)
         .end((err, res) => {
-          if(!res.text){
+          if(!res || !res.text){
             window.localStorage.removeItem('terrariaEmail');
           }
           this.setState({user: JSON.parse(res.text)});

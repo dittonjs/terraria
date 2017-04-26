@@ -101,7 +101,6 @@ const defaultKeyMap = {
 }
 
 app.post('/users', (req, res) => {
-  console.log(req.body);
   const user = req.body;
   user.keyMap = defaultKeyMap;
   database.createUser(user, (err) => {
@@ -114,7 +113,6 @@ app.post('/users', (req, res) => {
 });
 
 app.post('/update_keymap', (req, res) => {
-  console.log(req.body);
   const userEmail = req.body.userEmail;
   const keyMap = req.body.keyMap;
   database.updateKeyMap(userEmail, keyMap);
@@ -178,7 +176,6 @@ io.on("connection", (socket)=>{
   });
 
   socket.on('continue game', (data) => {
-    console.log(data.name);
     database.loadWorld(data.name, (err, doc)=>{
       currentGames[data.name] = new Game(data.name);
       _.each(doc.blocks, (block)=>{ currentGames[data.name].gameObjects[block.serverId] = block; });
