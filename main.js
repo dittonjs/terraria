@@ -79,6 +79,10 @@ app.get('/styles/*', (req, res) => {
   res.sendFile(`${__dirname}/styles/${req.params[0]}`);
 });
 
+app.get('/sounds/*', (req, res) => {
+  res.sendFile(`${__dirname}/sounds/${req.params[0]}`);
+});
+
 app.get('/spritesheets/*', (req, res) => {
   res.sendFile(`${__dirname}/spritesheets/${req.params[0]}`);
 });
@@ -147,8 +151,8 @@ io.on("connection", (socket)=>{
     }
     gameObject.serverId = uid(10);
     // gameObject.creatorId = socket.id;
-    currentGames[gameObject.gameName].gameObjects[uid(10)] = gameObject;
-    socket.broadcast.emit(`${gameObject.name} instantiated`, gameObject);
+    currentGames[gameObject.gameName].gameObjects[gameObject.serverId] = gameObject;
+    io.emit(`${gameObject.name} instantiated`, gameObject);
   });
 
   socket.on('destroy', (data) => {
@@ -157,19 +161,21 @@ io.on("connection", (socket)=>{
     console.log(obj.name + ' OBJECT DESTROY');
     _.merge(obj, data.attributes)
     delete currentGames[data.gameName].gameObjects[data.id];
-    socket.broadcast.emit(`${obj.name} destroyed`, obj);
+    io.emit(`${obj.name} destroyed`, obj);
   });
 
   socket.on('update', (data) => {
-    if(!currentGames[data.gameName]) return;
+    if(!currentGames[data.gameName] || !currentGames[data.gameName].gameObjects[data.id]) return;
     _.merge(currentGames[data.gameName].gameObjects[data.id], data.attributes);
-    socket.broadcast.emit(
+    io.emit(
       `${currentGames[data.gameName].gameObjects[data.id].name} updated`,
       currentGames[data.gameName].gameObjects[data.id]
     );
   });
 
-
+  socket.on('damage enemy', (data) => {
+    io.emit('damage enemy', data)
+  });
 
   socket.on('continue game', (data) => {
     console.log(data.name);
@@ -191,6 +197,11 @@ io.on("connection", (socket)=>{
     }
     // TODO what if the player joined game but isnt there next time
     socket.emit('game joined', {gameObjects: game.gameObjects});
+  });
+
+  socket.on('player died', data => {
+    database.updateUserHighestScore(data.playerId, data.time);
+    io.emit('player died');
   });
 
   socket.on('save game', (gameName) => {

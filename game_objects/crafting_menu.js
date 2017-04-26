@@ -36,18 +36,12 @@ class CraftingMenu extends GameScene {
     this.options = [
       'Mining Laser',
       'Dirt',
-      'Stone wall',
-      'Brick wall',
-      'Cement wall',
-      'Wood Wall',
-      'Wood Door',
-      'Glass window',
-      'Fireplace',
-      'SAVE GAME'
     ]
+    this.game.mode == 'CREATIVE' && this.options.push('SAVE GAME');
     this.player = player
     this.open = false;
     this.currentSelection = 'Mining Laser'
+    this.optionIndex = 2
   }
 
   toggleMenu(open){
@@ -69,7 +63,11 @@ class CraftingMenu extends GameScene {
       opt.transform = new Transform(100, 100 + (20* i));
     });
   }
-
+  addOption(text){
+    const opt = this.instantiate(CraftingMenuOption, false, [text, false], this);
+    opt.transform = new Transform(100, 100 + (20* this.optionIndex));
+    this.optionIndex ++;
+  }
   update(){
     if(!this.open) return;
     _.each(this.gameObjects, (obj)=>{
@@ -81,6 +79,26 @@ class CraftingMenu extends GameScene {
     this.game.graphics.drawText(
       {x: 100, y: 20},
       "Current Tool: " + this.currentSelection,
+      {
+        textAlign: 'center',
+        font: '15px Roboto',
+        fillStyle: this.isSelected? '#4CAF50' : 'white'
+      }
+    )
+
+    this.game.graphics.drawText(
+      {x: 500, y: 20},
+      "Next Wave: " + Math.trunc(this.player.scene.times[0] / 1000),
+      {
+        textAlign: 'center',
+        font: '15px Roboto',
+        fillStyle: this.isSelected? '#4CAF50' : 'white'
+      }
+    )
+
+    this.game.graphics.drawText(
+      {x: 600, y: 20},
+      "Health: " + Math.trunc(this.player.health),
       {
         textAlign: 'center',
         font: '15px Roboto',

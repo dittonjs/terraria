@@ -56,6 +56,13 @@ class LoadingScene extends GameScene {
           _.merge(newPlayer, obj);
           if(newPlayer.creatorId == this.game.network.networkData.playerId){
             mainGame.player = newPlayer;
+          } else {
+            newPlayer.setConditionMap({
+              idle: ()=>(true),
+              walk: ()=>(newPlayer.conditions.walk),
+              run: ()=>(newPlayer.conditions.run),
+              jump: ()=>(newPlayer.conditions.jump),
+            });
           }
         }
       });

@@ -1,5 +1,5 @@
 const MongoClient = require('mongodb').MongoClient;
-const url = 'mongodb://localhost:27017/terraria';
+const url = 'mongodb://localhost:27017/terraria_game';
 
 class Database {
   createUser(user, callback = ()=>{}){
@@ -10,13 +10,23 @@ class Database {
 
   getUser(data, callback = ()=>{}, key = 'email'){
     MongoClient.connect(url, (err, db) => {
-      console.log(err);
+      console.log(err, 'huh');
       db.collection('users').find({
         [key]: data
       }).next(callback);
     });
   }
-
+  updateUserHighestScore(userName, data, callback = ()=>{}){
+    MongoClient.connect(url, (err, db) => {
+      db.collection('users').find({
+        userName,
+      }).next((err, doc)=>{
+        if(!doc.highScore || doc.highScore < data){
+          db.collection('users').update({userName}, { $set: {highScore: data}});
+        }
+      });
+    });
+  }
   updateKeyMap(email, keyMap, callback){
     MongoClient.connect(url, (err, db) => {
       db.collection('users').update({email}, { $set: {
@@ -56,6 +66,9 @@ class Database {
   }
   loadWorld(name, callback = () => {}){
     MongoClient.connect(url, (err, db) => {
+      if(err){
+        return;
+      }
       db.collection('worlds').find({
         name
       }).next(callback);

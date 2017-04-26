@@ -34,36 +34,38 @@ class ParticleEffect extends GameObject {
   }
 
   play(){
-    if(this.playing) return;
+    // if(this.playing) return;
     this.playing = true;
     if(this.opts.allAtOnce){
       this.activeParticles = [...this.waitingParticles];
       this.waitingParticles = [];
       _.each(this.activeParticles, particle => particle.awake());
+    } else if(this.opts.atATime){
+      for(let i = 0; i<this.opts.atATime; i++){
+        const particle = this.waitingParticles.shift();
+        particle.awake();
+        this.activeParticles.push(particle);
+      }
     } else {
       this.spawnTime = this.opts.spawnTime || (1000 / this.opts.particleCount);
     }
   }
 
   stop(){
-    if(!this.playing) return;
     this.timePlaying = 0;
-    this.playing = false;
     this.waitingParticles = [...this.waitingParticles, ...this.activeParticles, ...this.readyForDisable];
     this.readyForDisable = [];
     this.activeParticles = [];
   }
 
+  disable(){
+    const particle = this.activeParticles.shift();
+    this.readyForDisable.push(particle);
+  }
+
   update(elapsedTime){
-    if(!this.playing) return;
-    this.timePlaying += elapsedTime;
-    this.spawnElapsed += elapsedTime;
-    if(this.opts.lifetime && this.timePlaying > this.opts.lifetime){
-      this.stop();
-      return;
-    }
-    if (this.opts.allAtOnce) {
-      _.each(this.activeParticles, particle => particle.update(elapsedTime));
+    if (this.opts.allAtOnce || this.opts.atATime) {
+      _.each(this.activeParticles, particle => particle && particle.update(elapsedTime));
     } else {
       if(this.spawnElapsed > this.spawnTime){
         this.spawnElapsed = 0;
@@ -81,7 +83,7 @@ class ParticleEffect extends GameObject {
   }
 
   render(){
-    if(!this.playing) return;
+    // if(!this.playing) return;
     _.each(this.activeParticles, particle => particle.render());
   }
 }

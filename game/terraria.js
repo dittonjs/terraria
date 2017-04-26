@@ -9,11 +9,22 @@ class MainWorld extends GameScene {
     super(...args);
     this.camera = null;
     this.player = null;
+    this.camera = this.instantiate(DebugCamera, false);
+    this.instantiate(BackgroundRenderer, true);
+    this.times = [30000000, 60000, 60000, 60000, 60000, 60000, 30000, 10000, 10000, 10000, 10000, 10000, 10000, 10000];
+    // this.times = [1000];
+    this.newOptions = ['Stone Block', 'Brick Block', 'Cement Block']
+    this.enemyCount = 0;
+    this.enemySpawn = 1;
+    this.lifeTime = 0;
+    this.deathTime = 0;
+    this.dead = false;
+    this.toLobby = 10000;
   }
 
-  handleDestory(serverObj){
+  handleDestroy(serverObj){
     // if(serverObj.creatorId != this.game.network.networkData.playerId){
-      console.log(serverObj.name + ' DESTROYED');
+
       this.game.addServerUpdate((elapsedTime) => {
         let otherObj = _.find(this.gameObjects, obj => obj.serverId == serverObj.serverId);
         if(!otherObj){
@@ -25,6 +36,43 @@ class MainWorld extends GameScene {
     // }
   }
 
+  captureDeathTime(){
+    this.deathTime = this.lifeTime;
+    this.dead = true;
+    return this.deathTime;
+  }
+
+  update(elapsedTime){
+    if(this.dead){
+      this.toLobby -= elapsedTime;
+      if(this.toLobby <= 0){
+        window.location = 'http://localhost:3000';
+      }
+    }
+
+    this.times[0] && (this.times[0] -= elapsedTime);
+    this.lifeTime += elapsedTime;
+    if(this.times[0] && this.times[0] < 0){
+      this.times.shift();
+      this.newOptions.length && this.player.craftingMenu.addOption(this.newOptions.shift());
+      if(this.enemyCount > 20) return;
+      for(let i = 0; i< this.enemySpawn; i++){
+        this.enemyCount += 1;
+        // enemy.setTarget(this.player);
+        let x = Math.random() > .5 ? 10000 : 0;
+        x += _.random(-1000, 1000);
+        this.game.network.instantiate({
+          name:'enemy',
+          transform: {x, y: -100},
+          health: 1000
+        });
+      }
+      this.enemySpawn < 10 && (this.enemySpawn ++);
+    } else if(!this.times[0]){
+      this.times.push(1000);
+    }
+  }
+
   handleUpdate(serverObj){
     if(serverObj.creatorId != this.game.network.networkData.playerId){
       this.game.addServerUpdate((elapsedTime) => {
@@ -33,8 +81,11 @@ class MainWorld extends GameScene {
       });
     }
   }
+
   awake(){
-    this.camera = this.instantiate(DebugCamera, false);
+    this.game.assets['abyss'].volume = 0.03;
+    this.game.assets['abyss'].play();
+
     this.game.network.on('player updated', (player) => {this.handleUpdate(player)});
     this.game.network.on('player joined', (player) => {
       if(player.creatorId != this.game.network.networkData.playerId){
@@ -77,14 +128,34 @@ class MainWorld extends GameScene {
         myBlock.creatorId = block.creatorId;
       }
     });
+    this.game.network.on('enemy updated', (enemy) => {this.handleUpdate(enemy)});
+    this.game.network.on('enemy destroyed', (enemy) => {this.handleDestroy(enemy)});
+    this.game.network.on('enemy instantiated', (enemy) => {
+      this.game.addServerUpdate((elapsedTime) => {
+        const e = this.instantiate(Enemy, false);
+        _.merge(e, enemy);
+        if(e.creatorId == this.game.network.networkData.playerId){
+          e.setTarget(this.player);
+        }
+      });
+    });
+
+    this.game.network.on('damage enemy', (data) => {
+      if(data.creatorId == this.game.network.networkData.playerId){
+        const enemy = _.find(this.gameObjects, obj => obj.serverId == data.serverId);
+        enemy.addDamage(250);
+      }
+    });
 
     this.game.network.on('laser destroyed', (obj)=>{
-      this.handleDestory(obj);
+      this.handleDestroy(obj);
     });
     this.game.network.on('block destroyed', (obj)=>{
-      this.handleDestory(obj);
+      this.handleDestroy(obj);
     });
-
+    this.game.network.on('player died', () => {
+      this.captureDeathTime();
+    });
     this.game.network.on('laser updated', (obj) => {this.handleUpdate(obj)});
     window.scene = this;
   }
@@ -99,15 +170,15 @@ class MainWorld extends GameScene {
     const collisions = [];
     for(let i = 0; i < allGameObjects.length; i++){
       const obj = allGameObjects[i];
-      if(left && obj.transform.x > from.x) continue;
-      if(!left && obj.transform.x < from.x) continue;
+      if(left && obj.transform.x - obj.width > from.x) continue;
+      if(!left && obj.transform.x + obj.width < from.x) continue;
       if(down && obj.transform.y < from.y) continue;
       if(!down && obj.transform.y > from.y) continue;
-      if(obj.name == 'block'){
+      if(obj.name == 'block' || obj.name == 'enemy'){
+
         if(left){
           const y = (((obj.transform.x + (obj.width / 2)) - from.x)*mod) + from.y;
           if(y < obj.transform.y + (obj.height/2) && y > obj.transform.y - (obj.height/2)){
-            console.log('right wall',mod, y, obj.transform.x + (obj.width / 2))
             obj.transform.x < from.x && obj.transform.x > to.x && collisions.push({
               x: obj.transform.x + (obj.width / 2),
               y,
@@ -117,7 +188,7 @@ class MainWorld extends GameScene {
         } else {
           const y = (((obj.transform.x - (obj.width / 2)) - from.x)*mod) + from.y;
           if(y < obj.transform.y + (obj.height/2) && y > obj.transform.y - (obj.height/2)){
-            console.log('left wall',mod, y, obj.transform.x + (obj.width / 2))
+
             obj.transform.x > from.x && obj.transform.x < to.x && collisions.push({
               x: obj.transform.x - (obj.width / 2),
               y,
@@ -126,12 +197,18 @@ class MainWorld extends GameScene {
           }
         }
         if(down){
+
           const y = obj.transform.y - (obj.height/2);
           const b = from.y;
           let x = (y - b)/mod;
           x = x + from.x
+
           if(x < obj.transform.x + (obj.width/2) && x > obj.transform.x - (obj.width/2)){
-            console.log('top wall', mod, x, y)
+            // if(left && down){
+            //   console.log("x:",x, from.x);
+            //   console.log(y,from.y,to.y,b);
+            //   y > from.y && y < to.y && console.log('found');
+            // }
             y > from.y && y < to.y && collisions.push({
               x,
               y,
@@ -144,7 +221,7 @@ class MainWorld extends GameScene {
           let x = (y - b)/mod;
           x = x + from.x
           if(x < obj.transform.x + (obj.width/2) && x > obj.transform.x - (obj.width/2)){
-            console.log('bottom wall', mod, x, y)
+
             y < from.y && y > to.y && collisions.push({
               x,
               y,
@@ -164,6 +241,38 @@ class MainWorld extends GameScene {
       return min;
     }, {point: collisions[0], d: d(collisions[0])}).point;
   }
+  render(){
+    if(!this.dead) return;
+    this.game.graphics.drawText(
+      {x: 350, y: 200},
+      'Game Over',
+      {
+        textAlign: 'center',
+        font: '30px Roboto',
+        fillStyle: 'white'
+      }
+    );
+
+    this.game.graphics.drawText(
+      {x: 350, y: 230},
+      `You survived ${Math.trunc(this.deathTime/1000)} seconds`,
+      {
+        textAlign: 'center',
+        font: '30px Roboto',
+        fillStyle: 'white'
+      }
+    );
+
+    this.game.graphics.drawText(
+      {x: 350, y: 260},
+      `Returning to lobby in ${Math.trunc(this.toLobby/1000)}`,
+      {
+        textAlign: 'center',
+        font: '30px Roboto',
+        fillStyle: 'white'
+      }
+    );
+  }
 }
 
 function startGame(networkData, keyMap){
@@ -172,7 +281,16 @@ function startGame(networkData, keyMap){
   canvas.height = 500;
   const assets = [
     {type: 'image', src: '/spritesheets/sprites.png', name: 'sprites'},
-    {type: 'image', src: '/spritesheets/character.png', name: 'player'}
+    {type: 'image', src: '/spritesheets/character.png', name: 'player'},
+    {type: 'image', src: '/spritesheets/hillsFront.png', name: 'hillsFront'},
+    {type: 'image', src: '/spritesheets/hillsBack.png', name: 'hillsBack'},
+    {type: 'image', src: '/spritesheets/enemy.png', name: 'enemy'},
+    {type: 'image', src: '/spritesheets/stars_background.png', name: 'starsBackground'},
+    {type: 'sound', src: '/sounds/abyss.mp3', name: 'abyss'},
+    {type: 'sound', src: '/sounds/twilight.mp3', name: 'twilight'},
+    {type: 'sound', src: '/sounds/laser.wav', name: 'laser'},
+    {type: 'sound', src: '/sounds/dead_brick.wav', name: 'deadBrick'},
+    {type: 'sound', src: '/sounds/enemyExplosion.wav', name: 'enemyExplosion'},
   ];
   const game = new Game(canvas, assets, networkData, keyMap);
   const mainWorld = new MainWorld('mainWorld', game);
@@ -199,7 +317,7 @@ function startGame(networkData, keyMap){
   }, {});
   var request = superagent;
   request.get('http://localhost:9000/users?player_id='+networkData.playerId).end((err, res)=>{
-    console.log(res, err);
+
     const keyMap = JSON.parse(res.text).keyMap;
     let game = startGame(networkData, keyMap);
   });

@@ -1,6 +1,7 @@
 class Player extends multiple([Collider, AnimationMachine]) {
   constructor(...args){
     super(...args);
+    this.name = 'player';
     this.transform = new Transform(500, 0);
     this.sprite = new JSprite(this.game.assets.player, 64*4, 0, 0, 64, 64);
     this.setColliderType(
@@ -19,7 +20,7 @@ class Player extends multiple([Collider, AnimationMachine]) {
     this.animationMachine = null;
     this.conditions = {};
     this.shooting = false;
-    this.healt = 100;
+    this.health = 100;
     this.damage = 50;
     this.inventory = new Inventory({
       fiber: 0,
@@ -29,7 +30,7 @@ class Player extends multiple([Collider, AnimationMachine]) {
       electical: 0,
       sand: 0,
     });
-
+    this.dead = false;
     this.craftingMenu = new CraftingMenu(this, '', this.game);
     // this.craftingMenu.toggleMenu(true);
     this.craftingMenu.awake();
@@ -39,7 +40,18 @@ class Player extends multiple([Collider, AnimationMachine]) {
     this.terminalVelocity = 15;
   }
 
+  addDamage(amount){
+    this.health -= amount;
+    // play particle effect
+    if(this.health <= 0 ){
+      this.dead = true;
+      const time = this.scene.captureDeathTime();
+      this.game.network.emit('player died', {playerId: this.game.network.networkData.playerId, time});
+    }
+  }
+
   setupAnimation(){
+
     const idle = [new JSprite(this.game.assets.player, 64*4, 0, 0, 64, 64)];
     const walk = [
       new JSprite(this.game.assets.player, 64*4, 64, 0, 64, 64),
@@ -70,6 +82,7 @@ class Player extends multiple([Collider, AnimationMachine]) {
     });
   }
   onCollision(other, dir){
+    if(other.name == 'enemy') return;
     if(dir == 'right'){
       this.transform.x = other.transform.x - 16 - 11;
     }
@@ -103,7 +116,11 @@ class Player extends multiple([Collider, AnimationMachine]) {
       this.firstUpdate = false;
       return;
     }
+    if(this.dead) return;
+    this.health += 5 * (deltaTime/1000);
+    if(this.health > 100) this.health = 100;
     const conditions = this.updateAnimations(deltaTime);
+
     _.each(this.game.readyInput, input => {
       if(input.key == this.game.input.keyMap.toggleMenu){
         this.craftingMenu.toggleMenu(!this.craftingMenu.open);
@@ -123,6 +140,8 @@ class Player extends multiple([Collider, AnimationMachine]) {
             const at = raycastHit? raycastHit : {x: input.transform.x, y: input.transform.y}
             const laser = this.scene.instantiate(Laser, false, [at], this);
             laser.creatorId = this.game.network.networkData.playerId;
+            this.game.assets.laser.volume = .03;
+            this.game.assets.laser.play();
             this.game.network.instantiate({name: 'laser', to: {x: at.x, y: at.y}, from: this.transform});
             if(raycastHit && raycastHit.obj.name == "block"){
 
@@ -133,6 +152,8 @@ class Player extends multiple([Collider, AnimationMachine]) {
                 this.scene.destroy(raycastHit.obj);
                 this.game.network.destroy(raycastHit.obj.serverId);
               }
+            } else if(raycastHit && raycastHit.obj.name == 'enemy'){
+              raycastHit.obj.addDamage(250, raycastHit);
             }
           }
         });
@@ -177,7 +198,8 @@ class Player extends multiple([Collider, AnimationMachine]) {
     this.groundChecker._update();
   }
   render(){
-    this.craftingMenu.render();
+    if(this.dead) return;
+    this == this.scene.player && this.craftingMenu.render();
     this.game.graphics.drawImg(
       this.transform,
       this.sprite,

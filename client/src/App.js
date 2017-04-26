@@ -21,7 +21,8 @@ const styles = {
     padding: '10px',
     backgroundColor: '#009688',
     fontWeight: 'bold',
-    color: 'white'
+    color: 'white',
+    margin: '5px'
   },
   modal: {
     backgroundColor: 'white',
@@ -48,6 +49,7 @@ class App extends Component {
       user: null,
       modalOpen: false,
       controls: false,
+      credits: false,
     };
   }
   componentDidMount(...args){
@@ -58,6 +60,9 @@ class App extends Component {
       request
         .get(`http://localhost:9000/users?email=${window.localStorage.getItem('terrariaEmail')}`)
         .end((err, res) => {
+          if(!res.text){
+            window.localStorage.removeItem('terrariaEmail');
+          }
           this.setState({user: JSON.parse(res.text)});
         });
     }
@@ -89,6 +94,7 @@ class App extends Component {
     } else if(this.state.user){
       content = (
         <div style={styles.container}>
+          <div>Longest Time Survived: {this.state.user.highScore ? Math.trunc(this.state.user.highScore / 1000) : 0} Seconds</div>
           <div style={{display: 'flex'}}>
             <div style={styles.block}>
               <SavedGames user={this.state.user}/>
@@ -99,9 +105,8 @@ class App extends Component {
           </div>
           <div style={styles.new}>
             <button style={styles.button} onClick={() => this.openModal()}>NEW GAME</button>
-          </div>
-          <div style={styles.new}>
             <button style={styles.button} onClick={() => this.setState({controls: true})}>CONTROLS</button>
+            <button style={styles.button} onClick={() => this.setState({credits: true})}>CREDITS</button>
           </div>
         </div>
       );
@@ -117,10 +122,21 @@ class App extends Component {
         </div>
       </div>
     );
+
+    const credits = (
+      <div style={styles.modal}>
+        <h3 style={{color: 'grey'}}> Developed by Joseph Ditton </h3>
+        <h3 style={{color: 'grey'}}> Music Composed by Joseph Ditton </h3>
+        <h3 style={{color: 'grey'}}> Sound Effect and Art from opengameart.org</h3>
+        <button style={styles.button} onClick={() => this.setState({credits: false})}>Close</button>
+      </div>
+    )
+
     return (
       <div className="App">
         {content}
         {this.state.modalOpen ? modal : null}
+        {this.state.credits && credits}
       </div>
     );
   }

@@ -42,6 +42,15 @@ class Game {
         img.src = asset.src;
         this.assets[asset.name] = img;
       }
+      if(asset.type == 'sound'){
+        const sound = new Audio();
+        sound.src = asset.src;
+        this.assets[asset.name] = sound;
+        this.assetsLoaded += 1;
+        if(this.assetsLoaded == assets.length){
+          this.assetsReady = true;
+        }
+      }
     });
   }
 
@@ -164,11 +173,11 @@ class Game {
   update(timeSinceLastUpdate){
     if(this.scenes[this.currentScene]){
       _.each(this.serverUpdates, update => update(timeSinceLastUpdate));
-      this.scenes[this.currentScene].update(timeSinceLastUpdate);
       this.checkCollisions();
       // !this.scenes[this.currentScene].assetsReady === false &&
         _.each(this.scenes[this.currentScene].gameObjects, gameObject => gameObject.update(timeSinceLastUpdate));
       this.scenes[this.currentScene]._destroyQueue();
+      this.scenes[this.currentScene].update(timeSinceLastUpdate);
       this.serverUpdates = [];
     }
   }
@@ -178,11 +187,11 @@ class Game {
   render(){
     if(this.scenes[this.currentScene]){
       this.clearForRerender();
-      this.scenes[this.currentScene].render();
       // !this.scenes[this.currentScene].assetsReady === false &&
         _.each(this.scenes[this.currentScene].staticGameObjects, gameObject => gameObject.render(this.context));
       // !this.scenes[this.currentScene].assetsReady === false &&
         _.each(this.scenes[this.currentScene].gameObjects, gameObject => gameObject.render(this.context));
+        this.scenes[this.currentScene].render();
     }
   }
 

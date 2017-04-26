@@ -101,13 +101,14 @@ class JdCanvasApi {
 
   drawImg(at, sprite, options = {}){
     // this._handleResize();
-    if(this.isOffScreen(at)) return;
+    const parallax = options.parallax || 1;
+    if(!options.renderIfOffScreen && this.isOffScreen(at)) return;
     const opts = _.assign({}, defaultImgOptions, options);
     this.context.save();
     let cameraX = 0;
     let cameraY = 0;
-    this.camera && (cameraX = this.camera.transform.x);
-    this.camera && (cameraY = this.camera.transform.y);
+    this.camera && (cameraX = this.camera.transform.x*parallax);
+    this.camera && (cameraY = this.camera.transform.y*parallax);
     options.flipImage && this.context.translate(at.x, at.y)
     options.flipImage && this.context.scale(-1,1);
     options.flipImage && this.context.translate(-at.x, -at.y);
