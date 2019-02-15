@@ -11,7 +11,7 @@ class MainWorld extends GameScene {
     this.player = null;
     this.camera = this.instantiate(DebugCamera, false);
     this.instantiate(BackgroundRenderer, true);
-    this.times = [30000000, 60000, 60000, 60000, 60000, 60000, 30000, 10000, 10000, 10000, 10000, 10000, 10000, 10000];
+    this.times = [10000, 60000, 60000, 60000, 60000, 60000, 30000, 10000, 10000, 10000, 10000, 10000, 10000, 10000];
     // this.times = [1000];
     this.newOptions = ['Stone Block', 'Brick Block', 'Cement Block']
     this.enemyCount = 0;
