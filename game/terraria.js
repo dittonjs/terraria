@@ -241,6 +241,7 @@ class MainWorld extends GameScene {
       return min;
     }, {point: collisions[0], d: d(collisions[0])}).point;
   }
+
   render(){
     if(!this.dead) return;
     this.game.graphics.drawText(

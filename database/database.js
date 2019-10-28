@@ -10,7 +10,6 @@ class Database {
 
   getUser(data, callback = ()=>{}, key = 'email'){
     MongoClient.connect(url, (err, db) => {
-      console.log(err, 'huh');
       db.collection('users').find({
         [key]: data
       }).next(callback);
