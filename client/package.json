@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "keycode": "^2.1.8",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.21",
     "react": "^15.5.3",
     "react-dom": "^15.5.3",
     "superagent": "^3.5.2"
